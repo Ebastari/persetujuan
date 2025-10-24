@@ -49,17 +49,20 @@
   <div class="card">
     <h2>Persetujuan Laporan Stok Bibit Nursery</h2>
     <p id="infoText">Memuat data...</p>
+
     <div id="actionButtons" style="display:none;">
       <button class="btn-approve" onclick="sendApproval('Approved')">✅ Setujui</button>
       <button class="btn-reject" onclick="sendApproval('Rejected')">❌ Tolak</button>
     </div>
+
     <p id="statusMsg" class="status"></p>
   </div>
 
   <script>
-    // ✅ Ganti URL di bawah dengan Sheety kamu
+    // 🔗 Ganti ini dengan URL Sheety kamu
     const SHEETY_URL = "https://api.sheety.co/68250c0c0b4a18219329ec85af45d6a4/aproval/sheet1";
 
+    // Ambil parameter dari URL
     const params = new URLSearchParams(window.location.search);
     const jabatan = params.get("jabatan");
     const periode = params.get("periode");
@@ -73,14 +76,15 @@
     } else {
       infoText.innerHTML = `
         Dear <b>${jabatan}</b>,<br>
-        Mohon konfirmasi laporan stok bibit periode <b>${periode}</b>.
+        Mohon konfirmasi atas laporan stok bibit periode <b>${periode}</b>.<br>
+        Silakan pilih tindakan di bawah ini:
       `;
       buttons.style.display = "block";
     }
 
     async function sendApproval(status) {
       msg.innerHTML = "⏳ Menyimpan keputusan...";
-      const waktu = new Date().toISOString();
+      const waktu = new Date().toLocaleString("id-ID");
 
       const body = {
         sheet1: {
@@ -100,13 +104,14 @@
 
         if (!res.ok) throw new Error("Gagal menyimpan data ke Sheety");
 
-        msg.innerHTML = status === "Approved"
-          ? `<span class="approved">✅ Tersimpan: laporan disetujui.</span>`
-          : `<span class="rejected">❌ Tersimpan: laporan ditolak.</span>`;
-        buttons.style.display = "none";
+        msg.innerHTML =
+          status === "Approved"
+            ? `<span class="approved">✅ Data tersimpan, laporan disetujui.</span>`
+            : `<span class="rejected">❌ Data tersimpan, laporan ditolak.</span>`;
 
+        buttons.style.display = "none";
       } catch (err) {
-        msg.innerHTML = "❌ Error: " + err.message;
+        msg.innerHTML = "❌ Terjadi kesalahan: " + err.message;
       }
     }
   </script>
