@@ -2,116 +2,160 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Persetujuan Laporan Stok Bibit</title>
+  <title>Persetujuan Laporan Stok Bibit Nursery</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-    .card{background:white;padding:40px 50px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,0.08);max-width:600px;width:90%;text-align:center}
-    h2{color:#0f172a;margin-bottom:10px}
-    p{color:#475569;margin-bottom:25px;white-space:pre-line}
-    button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;margin:10px;font-size:1rem}
-    .btn-approve{background-color:#16a34a;color:white}
-    .btn-approve:hover{background-color:#15803d}
-    .btn-reject{background-color:#dc2626;color:white}
-    .btn-reject:hover{background-color:#b91c1c}
-    .status{margin-top:20px;font-weight:600}
-    .approved{color:#16a34a}
-    .rejected{color:#dc2626}
-    .footer{margin-top:30px;font-size:0.85rem;color:#94a3b8}
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 40px 50px;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 600px;
+      width: 90%;
+      text-align: center;
+    }
+    h2 { color: #0f172a; margin-bottom: 10px; }
+    p { color: #475569; margin-bottom: 20px; }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 10px;
+      font-size: 1rem;
+    }
+    .btn-approve { background-color: #16a34a; color: white; }
+    .btn-approve:hover { background-color: #15803d; }
+    .btn-reject { background-color: #dc2626; color: white; }
+    .btn-reject:hover { background-color: #b91c1c; }
+    .status { margin-top: 20px; font-weight: 600; }
+    .approved { color: #16a34a; }
+    .rejected { color: #dc2626; }
+    .footer {
+      margin-top: 30px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Persetujuan Laporan Stok Bibit Nursery</h2>
     <p id="infoText">Memuat data laporan...</p>
+
     <div id="actionButtons" style="display:none;">
       <button class="btn-approve" onclick="sendApproval('Approved')">✅ Setujui</button>
       <button class="btn-reject" onclick="sendApproval('Rejected')">❌ Tolak</button>
     </div>
+
     <p id="statusMsg" class="status"></p>
-    <div class="footer">© 2025 PT Energi Batubara Lestari<br>Sistem Laporan Persemaian</div>
+
+    <div class="footer">
+      © 2025 PT Energi Batubara Lestari<br>
+      Sistem Laporan Persemaian
+    </div>
   </div>
 
   <script>
     const SHEETY_URL = "https://api.sheety.co/68250c0c0b4a18219329ec85af45d6a4/aproval/sheet1";
+
     const params = new URLSearchParams(window.location.search);
     const jabatan = params.get("jabatan");
     const periode = params.get("periode");
-    const infoText = document.getElementById("infoText");
-    const statusMsg = document.getElementById("statusMsg");
-    const buttons = document.getElementById("actionButtons");
 
-    // ✅ Cek parameter URL
+    const infoText = document.getElementById("infoText");
+    const buttons = document.getElementById("actionButtons");
+    const msg = document.getElementById("statusMsg");
+
+    // --- Cek parameter dari URL
     if (!jabatan || !periode) {
-      infoText.innerText = "⚠️ Halaman ini tidak dapat diakses langsung.\nGunakan tautan resmi yang dikirimkan oleh sistem.";
-      buttons.style.display = "none";
+      infoText.innerHTML = "⚠️ Parameter tidak lengkap. Pastikan link berisi <b>jabatan</b> dan <b>periode</b>.";
     } else {
-      infoText.innerText = `Dear ${jabatan},\n\nMohon konfirmasi atas laporan stok bibit periode ${periode}.`;
+      infoText.innerHTML = `Dear <strong>${jabatan}</strong>,<br>Mohon konfirmasi atas laporan stok bibit periode <strong>${periode}</strong>.`;
       loadStatus();
     }
 
+    // --- Ambil status dari Sheety
     async function loadStatus() {
       try {
         const res = await fetch(SHEETY_URL);
         const json = await res.json();
-        const approvals = json.sheet1 || json.data || [];
-        const found = approvals.find(a =>
-          a.jabatan?.trim().toLowerCase() === jabatan.trim().toLowerCase() &&
-          a.periode?.trim().toLowerCase() === periode.trim().toLowerCase()
-        );
+        const approvals = json.sheet1 || json.approval || [];
+        const found = approvals.find(a => a.periode === periode && a.jabatan === jabatan);
 
         if (!found) {
-          statusMsg.innerHTML = "⚠️ Data belum terdaftar. Hubungi admin.";
+          msg.innerHTML = "⚠️ Data belum terdaftar. Hubungi admin.";
           return;
         }
 
         if (found.status === "Approved") {
-          statusMsg.innerHTML = `<span class='approved'>✅ Anda telah menyetujui laporan ini.</span>`;
-          buttons.style.display = "none";
+          msg.innerHTML = `<span class="approved">✅ Anda sudah menyetujui laporan ini.</span>`;
         } else if (found.status === "Rejected") {
-          statusMsg.innerHTML = `<span class='rejected'>❌ Anda telah menolak laporan ini.</span>`;
-          buttons.style.display = "none";
+          msg.innerHTML = `<span class="rejected">❌ Anda telah menolak laporan ini.</span>`;
         } else {
-          statusMsg.innerHTML = `<span>⏳ Status Anda: Pending</span>`;
+          msg.innerHTML = "⏳ Status Anda saat ini: <b>Pending</b>";
           buttons.style.display = "block";
         }
       } catch (err) {
-        statusMsg.innerText = "❌ Gagal memuat data: " + err.message;
+        msg.innerHTML = "❌ Gagal memuat data: " + err.message;
       }
     }
 
+    // --- Kirim hasil approval (PUT ke Sheety)
     async function sendApproval(status) {
-      const waktu = new Date().toISOString();
-      const body = {
-        sheet1: {
-          jabatan: jabatan,
-          periode: periode,
-          status: status,
-          waktu: waktu
-        }
-      };
-
-      statusMsg.innerText = "⏳ Mengirim keputusan...";
-      buttons.style.display = "none";
-
+      msg.innerHTML = "⏳ Menyimpan keputusan...";
       try {
-        const res = await fetch(SHEETY_URL, {
-          method: "POST",
+        // Ambil dulu semua data untuk cari id
+        const res = await fetch(SHEETY_URL);
+        const json = await res.json();
+        const approvals = json.sheet1 || json.approval || [];
+        const found = approvals.find(a => a.periode === periode && a.jabatan === jabatan);
+
+        if (!found) {
+          msg.innerHTML = "⚠️ Data tidak ditemukan. Hubungi admin.";
+          return;
+        }
+
+        const id = found.id; // Ambil ID baris
+        const waktu = new Date().toISOString();
+        const updateUrl = `${SHEETY_URL}/${id}`;
+
+        const body = {
+          sheet1: {
+            status: status,
+            waktu: waktu
+          }
+        };
+
+        const updateRes = await fetch(updateUrl, {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body)
         });
-        const json = await res.json();
-        if (json.sheet1) {
-          statusMsg.innerHTML = status === "Approved"
-            ? `<span class='approved'>✅ Terima kasih, Anda telah menyetujui laporan ini.</span>`
-            : `<span class='rejected'>❌ Anda telah menolak laporan ini.</span>`;
+
+        const result = await updateRes.json();
+        if (result.sheet1) {
+          msg.innerHTML =
+            status === "Approved"
+              ? `<span class="approved">✅ Terima kasih, Anda telah menyetujui laporan ini.</span>`
+              : `<span class="rejected">❌ Anda telah menolak laporan ini.</span>`;
+          buttons.style.display = "none";
         } else {
-          statusMsg.innerText = "❌ Gagal menyimpan keputusan.";
-          buttons.style.display = "block";
+          msg.innerHTML = "❌ Gagal menyimpan keputusan ke Sheety.";
         }
       } catch (err) {
-        statusMsg.innerText = "❌ Terjadi kesalahan: " + err.message;
-        buttons.style.display = "block";
+        msg.innerHTML = "❌ Terjadi kesalahan: " + err.message;
       }
     }
   </script>
