@@ -24,15 +24,8 @@
       width: 90%;
       text-align: center;
     }
-    h2 {
-      color: #0f172a;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #475569;
-      margin-bottom: 25px;
-      line-height: 1.6;
-    }
+    h2 { color: #0f172a; margin-bottom: 10px; }
+    p { color: #475569; margin-bottom: 25px; line-height: 1.6; }
     button {
       padding: 10px 20px;
       border: none;
@@ -76,7 +69,7 @@
   </div>
 
   <script>
-    // 🟢 Ganti URL berikut dengan URL Sheety kamu
+    // 🟢 URL Sheety kamu
     const SHEETY_URL = "https://api.sheety.co/ecf70bd684db7a654a0aa41957dff1a8/aproval/sheet1";
 
     // Ambil parameter dari URL
@@ -88,9 +81,7 @@
     const buttons = document.getElementById("actionButtons");
     const msg = document.getElementById("statusMsg");
 
-    // ============================
-    // 1️⃣ Validasi parameter URL
-    // ============================
+    // 1️⃣ Validasi parameter
     if (!jabatan || !periode) {
       infoText.innerHTML = "⚠️ Parameter tidak lengkap. Pastikan link berisi <b>jabatan</b> dan <b>periode</b>.";
     } else {
@@ -102,19 +93,18 @@
       loadStatus();
     }
 
-    // ============================
-    // 2️⃣ Ambil status terkini dari Sheety
-    // ============================
+    // 2️⃣ Ambil status terkini
     async function loadStatus() {
       try {
         const res = await fetch(SHEETY_URL);
         const json = await res.json();
-        const dataKey = Object.keys(json)[0]; // misal: sheet1 / approval
+        const dataKey = Object.keys(json)[0];
         const approvals = json[dataKey] || [];
         const found = approvals.find(a => a.periode === periode && a.jabatan === jabatan);
 
         if (!found) {
-          msg.innerHTML = "⚠️ Data belum terdaftar. Hubungi admin.";
+          msg.innerHTML = "ℹ️ Data belum ada, sistem akan membuat otomatis saat Anda menyetujui atau menolak.";
+          buttons.style.display = "block";
           return;
         }
 
@@ -125,7 +115,7 @@
         } else if (statusNow === "Rejected") {
           msg.innerHTML = `<span class="rejected">❌ Anda telah menolak laporan ini.</span>`;
         } else {
-          msg.innerHTML = "⏳ Status Anda: <b>Belum memberikan keputusan</b>";
+          msg.innerHTML = "⏳ Status: <b>Belum memberikan keputusan</b>";
           buttons.style.display = "block";
         }
       } catch (err) {
@@ -133,28 +123,50 @@
       }
     }
 
-    // ============================
-    // 3️⃣ Kirim hasil approval ke Sheety
-    // ============================
+    // 3️⃣ Kirim hasil approval
     async function sendApproval(status) {
       msg.innerHTML = "⏳ Menyimpan keputusan...";
       try {
+        const waktu = new Date().toLocaleString("id-ID");
+
+        // Ambil data dulu untuk cari ID
         const res = await fetch(SHEETY_URL);
         const json = await res.json();
         const dataKey = Object.keys(json)[0];
         const approvals = json[dataKey] || [];
         const found = approvals.find(a => a.periode === periode && a.jabatan === jabatan);
-        const waktu = new Date().toISOString();
 
+        // Jika belum ada → tambahkan data baru
         if (!found) {
-          msg.innerHTML = "⚠️ Data tidak ditemukan di Sheety.";
+          const body = {
+            [dataKey]: {
+              periode,
+              jabatan,
+              nama: jabatan, // bisa disesuaikan
+              status,
+              noHp: "-",
+              waktu
+            }
+          };
+          const postRes = await fetch(SHEETY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          if (postRes.ok) {
+            msg.innerHTML = `<span class="${status === "Approved" ? "approved" : "rejected"}">✅ Data baru ditambahkan (${status}).</span>`;
+            buttons.style.display = "none";
+          } else {
+            msg.innerHTML = "❌ Gagal menambahkan data.";
+          }
           return;
         }
 
+        // Jika sudah ada → update data
         const id = found.id;
         const updateUrl = `${SHEETY_URL}/${id}`;
         const body = {
-          [dataKey]: { status: status, waktu: waktu }
+          [dataKey]: { status, waktu }
         };
 
         const updateRes = await fetch(updateUrl, {
@@ -164,12 +176,10 @@
         });
 
         if (updateRes.ok) {
-          msg.innerHTML = status === "Approved"
-            ? `<span class="approved">✅ Terima kasih, Anda telah menyetujui laporan ini.</span>`
-            : `<span class="rejected">❌ Anda telah menolak laporan ini.</span>`;
+          msg.innerHTML = `<span class="${status === "Approved" ? "approved" : "rejected"}">✅ Status diperbarui menjadi ${status}.</span>`;
           buttons.style.display = "none";
         } else {
-          msg.innerHTML = "❌ Gagal menyimpan data ke Sheety.";
+          msg.innerHTML = "❌ Gagal memperbarui data.";
         }
       } catch (err) {
         msg.innerHTML = "❌ Terjadi kesalahan: " + err.message;
